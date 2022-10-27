@@ -7,8 +7,10 @@ sudo apt install ffmpeg
 
 In virtual environment:
 
-python3 -m venv 
+python3 -m venv
+
 venv . venv/bin/activate 
+
 pip install requirements.txt
 
 To run extract_ds.py:
