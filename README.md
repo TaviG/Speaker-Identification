@@ -17,4 +17,6 @@ pip install requirements.txt
 
 python extract_ds.py /path/to/dataset
 
-## Dataset must be stored locally from: https://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1.html
+## Dataset must be downloaded and stored locally from 
+
+https://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1.html
