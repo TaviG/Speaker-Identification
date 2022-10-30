@@ -1,11 +1,11 @@
 from asyncio import exceptions
 import os
 import sys
-from pytube import YouTube, exceptions
+from pytube import YouTube
 from scipy.io.wavfile import read, write
 import numpy as np
 
-DATASET_FILEPATH = sys.argv[1]
+DATASET_FILEPATH = r"D:\CPPSMS\txt\\"
 
 print(os.listdir(DATASET_FILEPATH))
 
@@ -15,8 +15,9 @@ for folder in os.listdir(DATASET_FILEPATH):
         yt = YouTube(f"https://www.youtube.com/watch?v={video}")
         try:
             streams = yt.streams.filter(file_extension='mp4')
-        except exceptions.VideoUnavailable:
-            continue
+        except Exception:
+            pass
+
 
         streams[0].download("videos", filename=f"video.mp4")
         os.system("ffmpeg -i videos/video.mp4 -r 25 videos/video_25.mp4")
