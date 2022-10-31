@@ -5,7 +5,7 @@ from pytube import YouTube
 from scipy.io.wavfile import read, write
 import numpy as np
 
-DATASET_FILEPATH = r"D:\CPPSMS\txt\\"
+DATASET_FILEPATH = sys.argv[1]
 
 print(os.listdir(DATASET_FILEPATH))
 
