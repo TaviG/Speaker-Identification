@@ -39,17 +39,4 @@ for folder in os.listdir(DATASET_FILEPATH):
         os.remove("videos/video.mp4")
         os.remove("videos/video_25.mp4")
 
-# first_folder = os.listdir(DATASET_FILEPATH)[0]
-
-# videos = os.listdir(DATASET_FILEPATH + first_folder)
-
-# video = videos[0]
-
-# yt = YouTube(f"https://www.youtube.com/watch?v={video}")
-# streams = yt.streams.filter(file_extension='mp4')
-
-# streams[0].download("videos", filename=f"video.mp4")
-
-# os.system("ffmpeg -i videos/video.mp4 -r 25 videos/video_25.mp4")
-
 print("Done")
