@@ -19,7 +19,7 @@ for path, subdirs, files in os.walk(inputdir):
         
 for filename in filenames:
     if(filename.endswith(".mp4")):
-        os.system('ffmpeg -i {} -acodec pcm_s16le -ar 16000 {}.wav'.format(filename, filename[:-4]))
+        os.system('ffmpeg -i {} -acodec pcm_s16le -ar 16000 -ac 1 -y {}.wav'.format(filename, filename[:-4]))
     else:
         continue
 
