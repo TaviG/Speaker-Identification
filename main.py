@@ -8,17 +8,13 @@ Created on Thu Nov  3 18:10:17 2022
 import os
 import sys
 import random
-from scipy.io import wavfile
-import numpy as np
-import matplotlib.pyplot as plt
-#import threading
+import funcs
 
 inputdir = sys.argv[1]
 
 people = []
 audios = []
 num_threads = 4
-
 
 for folder in os.listdir(inputdir):
     for video in os.listdir(os.path.join(inputdir, folder)):
@@ -45,47 +41,25 @@ Y_train = people[:n_train]
 X_test = audios[n_train:]
 Y_test = people[n_train:]
 
+funcs.plot_data_distribution(Y_train, 'train_distribution.jpg')
+funcs.plot_data_distribution(Y_test, 'test_distribution.jpg')
+funcs.plot_data_distribution(people, 'people_distribution.jpg')
+
 #Audio file read
-data = []
-for x in X_train:
-    _, info = wavfile.read(x)        
-    data.append(info)
+audio_data = funcs.read_wav_files(audios)
 
-#Statistical Moments
+# #Statistical Moments
+# #Mean + Variance
+mean, variance = funcs.calc_mean_variance(audio_data)
 
-#Mean + Variance
-
-means = [] 
-variance = [] 
-datafft = np.zeros(len(data)) 
-threads = []
-
-for info in data:
-    means.append(np.mean(info))
-    variance.append(np.var(info))
-
-#Plot means and variances
-plt.plot(means)
-plt.figure(), plt.plot(variance)        
+# Plot means and variances
+funcs.plot_mean(mean, "mean.jpg")        
+funcs.plot_variance(variance, "var.jpg")
 
 # Fourier Transform
-
-def fft(data, i, j):
-    return
-        
-'''
-for nr in num_threads:
-    t = threading.Thread(target=fft, args=(data, int(nr*len(data)/num_threads), int((nr+1)*len(data)/num_threads),))
-    threads.append(t)
-'''
-for info in data:
-    x = np.fft.fft(info)
-    datafft.append(x) 
+audio_fft = funcs.calc_fft(audio_data)
 
 # Plot dataset before and after fft.
+funcs.plot_mag_phase(audio_data, audio_fft)
 
-plt.figure(), plt.plot(data[0])
-plt.figure(), plt.plot(datafft[0]) # cast to real part
-
-
-
+print("Done")
