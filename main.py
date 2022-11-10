@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov  3 18:10:17 2022
-
 @author: Tavi
 """
 
 import os
 import sys
 import random
-from scipy.io import wavfile
-import numpy as np
-import matplotlib.pyplot as plt
-#import threading
+import funcs
+import threading
+from IPython import get_ipython
+import gc
 
-inputdir = sys.argv[1]
+inputdir = r"D:\CPPSMS\dataset\test\\"
 
 people = []
 audios = []
 num_threads = 4
-
+threads = []
 
 for folder in os.listdir(inputdir):
     for video in os.listdir(os.path.join(inputdir, folder)):
@@ -45,47 +44,35 @@ Y_train = people[:n_train]
 X_test = audios[n_train:]
 Y_test = people[n_train:]
 
+funcs.plot_data_distribution(Y_train, 'train_distribution.jpg')
+funcs.plot_data_distribution(Y_test, 'test_distribution.jpg')
+funcs.plot_data_distribution(people, 'people_distribution.jpg')
+
 #Audio file read
-data = []
-for x in X_train:
-    _, info = wavfile.read(x)        
-    data.append(info)
+audio_data = funcs.read_wav_files(audios)
 
-#Statistical Moments
+# #Statistical Moments
+# #Mean + Variance
+mean, variance = funcs.calc_mean_variance(audio_data)
 
-#Mean + Variance
-
-means = [] 
-variance = [] 
-datafft = np.zeros(len(data)) 
-threads = []
-
-for info in data:
-    means.append(np.mean(info))
-    variance.append(np.var(info))
-
-#Plot means and variances
-plt.plot(means)
-plt.figure(), plt.plot(variance)        
+# Plot means and variances
+funcs.plot_mean(mean, "mean.jpg")        
+funcs.plot_variance(variance, "var.jpg")
 
 # Fourier Transform
-
-def fft(data, i, j):
-    return
-        
-'''
-for nr in num_threads:
-    t = threading.Thread(target=fft, args=(data, int(nr*len(data)/num_threads), int((nr+1)*len(data)/num_threads),))
+audio_fft = audio_data.copy()
+for nr in range(num_threads):
+    t = threading.Thread(target=funcs.calc_fft, args=(audio_fft, int(nr*len(audio_fft)/num_threads), int((nr+1)*len(audio_fft)/num_threads),))
     threads.append(t)
-'''
-for info in data:
-    x = np.fft.fft(info)
-    datafft.append(x) 
+    t.start()
+for t in threads:
+    t.join()    
 
 # Plot dataset before and after fft.
+funcs.plot_mag_phase(audio_data, audio_fft)
 
-plt.figure(), plt.plot(data[0])
-plt.figure(), plt.plot(datafft[0]) # cast to real part
-
-
-
+# Garbage collector
+get_ipython().magic('reset -sf')
+del audio_fft
+del audio_data
+gc.collect()
