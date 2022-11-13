@@ -65,21 +65,19 @@ def plot_variance(var, title):
     plt.savefig(title)
 
 
-def calc_fft(data):
-    datafft = []
-    for info in data:
-        x = np.fft.fft(info)
-        datafft.append(x) 
-
-    return datafft
+def calc_fft(audio_fft, i, j):
+    for length in range(i,j):
+        audio_fft[length] = np.fft.fft(audio_fft[length])
+    return audio_fft
 
 
 def plot_mag_phase(data, fft):
-    plt.figure()
-    plt.subplot(3,1,1)
-    plt.plot(data[0])
-    plt.subplot(3,1,2)
-    plt.plot(np.abs(fft[0]))
-    plt.subplot(3,1,3)
-    plt.plot(np.angle(fft[0]))
-    plt.savefig('fft_analysis.jpg')
+    for i in range(10):
+        plt.figure()
+        plt.subplot(3,1,1)
+        plt.plot(data[i])
+        plt.subplot(3,1,2)
+        plt.plot(np.abs(fft[i]))
+        plt.subplot(3,1,3)
+        plt.plot(np.angle(fft[0]))
+        plt.savefig('fft_analysis'+str(i)+'.jpg')

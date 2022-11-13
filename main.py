@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov  3 18:10:17 2022
-
 @author: Tavi
 """
 
@@ -9,12 +8,16 @@ import os
 import sys
 import random
 import funcs
+import threading
+from IPython import get_ipython
+import gc
 
 inputdir = sys.argv[1]
 
 people = []
 audios = []
 num_threads = 4
+threads = []
 
 for folder in os.listdir(inputdir):
     for video in os.listdir(os.path.join(inputdir, folder)):
@@ -57,9 +60,21 @@ funcs.plot_mean(mean, "mean.jpg")
 funcs.plot_variance(variance, "var.jpg")
 
 # Fourier Transform
-audio_fft = funcs.calc_fft(audio_data)
+audio_fft = audio_data.copy()
+for nr in range(num_threads):
+    t = threading.Thread(target=funcs.calc_fft, args=(audio_fft, int(nr*len(audio_fft)/num_threads), int((nr+1)*len(audio_fft)/num_threads),))
+    threads.append(t)
+    t.start()
+for t in threads:
+    t.join()    
 
 # Plot dataset before and after fft.
 funcs.plot_mag_phase(audio_data, audio_fft)
+
+# Garbage collector
+get_ipython().magic('reset -sf')
+del audio_fft
+del audio_data
+gc.collect()
 
 print("Done")
