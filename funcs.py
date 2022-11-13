@@ -29,7 +29,8 @@ def plot_data_distribution(array, title):
 def read_wav_files(src):
     data = []
     for x in src:
-        _, info = wavfile.read(x)        
+        _, info = wavfile.read(x)
+        info = np.float32(info / (2 ** 15))        
         data.append(info)
 
     return data
