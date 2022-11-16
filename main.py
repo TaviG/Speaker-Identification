@@ -11,6 +11,7 @@ import funcs
 import threading
 from IPython import get_ipython
 import gc
+import numpy as np
 
 inputdir = sys.argv[1]
 
@@ -58,6 +59,25 @@ mean, variance = funcs.calc_mean_variance(audio_data)
 # Plot means and variances
 funcs.plot_mean(mean, "mean.jpg")        
 funcs.plot_variance(variance, "var.jpg")
+
+# Power spectral density
+psds = funcs.power_spectral_density(audio_data[:10], 16000)
+for idx, psd in enumerate(psds):
+    funcs.plot_psd(psd, idx)
+
+# Autocorrelation of one signal
+ndata = np.array(audio_data[0]) - np.array(mean[0])
+acorr = np.correlate(ndata, ndata, 'full')[len(ndata)-1:]
+acorr = acorr / variance[0] / len(ndata)
+funcs.plot_acorr(acorr)
+
+# Wiener Khinchin test
+size = 2 ** np.ceil(np.log2(2*len(audio_data[0]) - 1)).astype('int')
+fft = np.fft.fft(ndata, size)
+pwr = np.abs(fft) ** 2
+acorr2 = np.fft.ifft(pwr).real / variance[0] / len(ndata)
+acorr2 = acorr2[:len(ndata)]
+funcs.plot_acorr(acorr2)
 
 # Fourier Transform
 audio_fft = audio_data.copy()

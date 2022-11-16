@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
 import numpy as np
+import scipy.signal as ss
 
 
 def plot_data_distribution(array, title):
@@ -30,7 +31,7 @@ def read_wav_files(src):
     data = []
     for x in src:
         _, info = wavfile.read(x)
-        info = np.float32(info / (2 ** 15))        
+        info = np.float32(info / (2 ** 15))
         data.append(info)
 
     return data
@@ -82,3 +83,33 @@ def plot_mag_phase(data, fft):
         plt.subplot(3,1,3)
         plt.plot(np.angle(fft[0]))
         plt.savefig('fft_analysis'+str(i)+'.jpg')
+
+def power_spectral_density(data, fs):
+    periodgrams = []
+    for signal in data:
+        f, S = ss.periodogram(signal, fs, scaling='density')
+        periodgrams.append((f, S))
+
+    return periodgrams
+
+def plot_psd(psd, idx):
+    plt.figure()
+    plt.semilogy(psd[0], psd[1])
+    plt.title("Power spectral density")
+    plt.xlabel('frequency [Hz]')
+    plt.ylabel('PSD [V**2/Hz]')
+    plt.savefig(f'psd{idx}.jpg')
+
+def plot_acorr(acorr):
+    plt.figure()
+    plt.plot(acorr)
+    plt.title("Real part of the inverse Fourier transform of the power spectrum")
+    plt.savefig('acorr2.jpg')
+
+def plot_acorrs(acorr1, acorr2):
+    plt.figure()
+    plt.plot(acorr1, 'b', label="Normal")
+    plt.plot(acorr2, 'r', label="Using inverse FFT")
+    plt.title("Autocorrelation")
+    plt.legend()
+    plt.savefig('acorrs.jpg')
