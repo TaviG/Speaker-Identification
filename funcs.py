@@ -103,11 +103,11 @@ def plot_psd(psd, idx):
     plt.ylabel('PSD [V**2/Hz]')
     plt.savefig(f'psd{idx}.jpg')
 
-def plot_acorr(acorr):
+def plot_acorr(acorr, title):
     plt.figure()
     plt.plot(acorr)
-    plt.title("Real part of the inverse Fourier transform of the power spectrum")
-    plt.savefig('acorr2.jpg')
+    plt.title(title)
+    plt.savefig(title+'.jpg')
 
 def plot_acorrs(acorr1, acorr2):
     plt.figure()

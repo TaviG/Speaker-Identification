@@ -69,7 +69,7 @@ for idx, psd in enumerate(psds):
 ndata = np.array(audio_data[0]) - np.array(mean[0])
 acorr = np.correlate(ndata, ndata, 'full')[len(ndata)-1:]
 acorr = acorr / (variance[0] + 0.000000001) / len(ndata)
-funcs.plot_acorr(acorr)
+funcs.plot_acorr(acorr, "Autocorrelation")
 
 # Wiener Khinchin test
 size = 2 ** np.ceil(np.log2(2*len(audio_data[0]) - 1)).astype('int')
@@ -77,7 +77,7 @@ fft = np.fft.fft(ndata, size)
 pwr = np.abs(fft) ** 2
 acorr2 = np.fft.ifft(pwr).real / (variance[0] + 0.000000001) / len(ndata)
 acorr2 = acorr2[:len(ndata)]
-funcs.plot_acorr(acorr2)
+funcs.plot_acorr(acorr2, "Real part of the inverse Fourier transform of the power spectrum")
 
 
 # Fourier Transform
