@@ -1,7 +1,9 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
 import numpy as np
 import scipy.signal as ss
+import librosa.display
 
 
 def plot_data_distribution(array, title):
@@ -113,3 +115,39 @@ def plot_acorrs(acorr1, acorr2):
     plt.title("Autocorrelation")
     plt.legend()
     plt.savefig('acorrs.jpg')
+
+def plot_mfcc(mfcc):
+    plt.figure(figsize=(10,4))
+    librosa.display.specshow(mfcc, x_axis="time", sr=16000)
+    plt.colorbar()
+    plt.title('MFCC')
+    plt.tight_layout()
+    plt.savefig('mfcc.jpg')
+
+def min_length(arr):
+    min_length = 100000
+    for elem in arr:
+        if len(elem) < min_length:
+            min_length = len(elem)
+
+    return min_length
+
+def crop_arrs(arr, length):
+    for elem in arr:
+        elem = elem[:length]
+
+    return arr
+
+def plot_scatter(x, y, labels, n_labels, title):
+    fig, ax = plt.subplots(1,1, figsize=(12,12))
+
+    # Define colormap
+    cmap = plt.cm.jet
+    bounds = np.linspace(0, n_labels, n_labels+1)
+    norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+
+    scat = ax.scatter(x, y, c=labels, cmap=cmap, norm=norm)
+    cb = plt.colorbar(scat, spacing='proportional', ticks=bounds)
+    cb.set_label("Person id")
+    ax.set_title('Audio 2D mapping')
+    plt.savefig(title)
