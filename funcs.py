@@ -1,75 +1,53 @@
-import matplotlib
-import matplotlib.pyplot as plt
 from scipy.io import wavfile
 import numpy as np
 import scipy.signal as ss
-import librosa.display
+import os
+import random
+import threading
 
 Fs = 16000
 
-def plot_data_distribution(array, title):
-    # Convert from ['id1234', 'id1235', 'id1321', ...] to [0, 1, 87, ..]
-    array = [int(elem[2:]) for elem in array]
-    array = [elem - min(array) for elem in array]
+def extract_ds(inputdir):
+    audios = []
+    people = []
 
-    unique_elems = set(array)
-    counts = dict.fromkeys(unique_elems, 0)
-    for elem in unique_elems:
-        for arr in array:
-            if arr == elem:
-                counts[elem] += 1
-    
-    lists = sorted(counts.items()) # sorted by key, return a list of tuples
-    x, y = zip(*lists) # unpack a list of pairs into two tuples
+    for folder in os.listdir(inputdir):
+        for video in os.listdir(os.path.join(inputdir, folder)):
+            for audio in os.listdir(os.path.join(inputdir, folder, video)):
+                if(audio.endswith(".wav")):
+                    audios.append(os.path.join(inputdir, folder, video, audio))
+                    people.append(folder)
 
-    plt.figure()
-    plt.bar(x, y)
-    plt.xlabel('Person id')
-    plt.ylabel('Number of recordings')
-    plt.title('Data distribution')
-    plt.savefig(title)
+    return audios, people
 
+def shuffle_equally(x, y):
+    both = list(zip(x, y))
+    random.seed(42)
+    random.shuffle(both)
+    # Get back arrays
+    x, y = zip(*both)
+    return x, y
 
-def read_wav_files(src):
-    data = []
-    for x in src:
-        _, info = wavfile.read(x)
-        info = np.float32(info / (2 ** 15))
-        data.append(info)
-
-    return data
-
+def read_wav_file(src):
+    _, info = wavfile.read(src)
+    info = np.float32(info / (2 ** 15))
+    return info
 
 def calc_mean_variance(data):
     means = []
     variance = []
-    covariance = []
     for info in data:
         means.append(np.mean(info))
         variance.append(np.var(info))
 
     return means, variance
 
+def calc_cov_mat(data, start_samples, end_samples):
+    audio_cov = [elem[start_samples:end_samples] for elem in data]
+    audio_cov = np.stack(audio_cov, axis=0)
+    cov = np.matmul(audio_cov, audio_cov.T)
 
-def plot_mean(means, title):
-    means.sort()
-    plt.figure()
-    plt.plot(means)
-    plt.xlabel('Audio recording')
-    plt.ylabel('Mean value')
-    plt.title("Mean value of all audio recordings")
-    plt.savefig(title)
-
-
-def plot_variance(var, title):
-    var.sort()
-    plt.figure()
-    plt.plot(var)
-    plt.xlabel('Audio recording')
-    plt.ylabel('Variance')
-    plt.title("Dataset variance")
-    plt.savefig(title)
-
+    return cov
 
 def calc_fft(audio_fft, freqs, i, j):
     for length in range(i,j):
@@ -77,17 +55,19 @@ def calc_fft(audio_fft, freqs, i, j):
         freqs[length] = np.fft.fftfreq(audio_fft[length].size, d=1/Fs)
     return audio_fft, freqs
 
+def fft_of_ds(data, num_threads):
+    audio_fft = data.copy()
+    freqs = data.copy()
 
-def plot_mag_phase(data, fft, freqs):
-    for i in range(6):
-        plt.figure()
-        plt.subplot(2,1,1)
-        plt.plot(data[i])
-        plt.title("Audio recording")
-        plt.subplot(2,1,2)
-        plt.plot(freqs[i], np.abs(fft[i]))
-        plt.title("FFT")
-        plt.savefig('fft_analysis'+str(i)+'.jpg')
+    threads = []
+    for nr in range(num_threads):
+        t = threading.Thread(target=calc_fft, args=(audio_fft, freqs, int(nr*len(audio_fft)/num_threads), int((nr+1)*len(audio_fft)/num_threads),))
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+
+    return audio_fft, freqs
 
 def power_spectral_density(data, fs):
     periodgrams = []
@@ -97,35 +77,25 @@ def power_spectral_density(data, fs):
 
     return periodgrams
 
-def plot_psd(psd, idx):
-    plt.figure()
-    plt.semilogy(psd[0], psd[1])
-    plt.title("Power spectral density")
-    plt.xlabel('frequency [Hz]')
-    plt.ylabel('PSD [V**2/Hz]')
-    plt.savefig(f'psd{idx}.jpg')
+def calc_accor(signal, mean, var):
+    ndata = np.array(signal) - np.array(mean)
+    acorr = np.correlate(ndata, ndata, 'full')[len(ndata)-1:]
+    acorr = acorr / var / len(ndata)
 
-def plot_acorr(acorr):
-    plt.figure()
-    plt.plot(acorr)
-    plt.title("Real part of the inverse Fourier transform of the power spectrum")
-    plt.savefig('acorr2.jpg')
+    return acorr
 
-def plot_acorrs(acorr1, acorr2):
-    plt.figure()
-    plt.plot(acorr1, 'b', label="Normal")
-    plt.plot(acorr2, 'r', label="Using inverse FFT")
-    plt.title("Autocorrelation")
-    plt.legend()
-    plt.savefig('acorrs.jpg')
+def wiener_hincin(signal, mean, var):
+    ndata = np.array(signal) - np.array(mean)
 
-def plot_mfcc(mfcc):
-    plt.figure(figsize=(10,4))
-    librosa.display.specshow(mfcc, x_axis="time", sr=16000)
-    plt.colorbar()
-    plt.title('MFCC')
-    plt.tight_layout()
-    plt.savefig('mfcc.jpg')
+    size = 2 ** np.ceil(np.log2(2*len(signal) - 1)).astype('int')
+    fft = np.fft.fft(ndata, size)
+
+    pwr = np.abs(fft) ** 2
+
+    acorr = np.fft.ifft(pwr).real / var / len(ndata)
+    acorr = acorr[:len(ndata)]
+
+    return acorr
 
 def min_length(arr):
     min_length = 100000
@@ -135,22 +105,18 @@ def min_length(arr):
 
     return min_length
 
-def crop_arrs(arr, length):
-    for elem in arr:
-        elem = elem[:length]
+def Kmeans_accuracy(official_labels, pred_labels):
+    accuracies = {}
+    for label in np.unique(official_labels):
+        idxes = official_labels == label
+        predicted_classes = pred_labels[idxes]
 
-    return arr
+        counts = {}
+        for pred_class in np.unique(predicted_classes):
+            counts[pred_class] = np.count_nonzero(predicted_classes == pred_class)
 
-def plot_scatter(x, y, labels, n_labels, title):
-    fig, ax = plt.subplots(1,1, figsize=(12,12))
+        accuracy = max(counts.values()) / sum(counts.values())
 
-    # Define colormap
-    cmap = plt.cm.jet
-    bounds = np.linspace(0, n_labels, n_labels+1)
-    norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+        accuracies[label] = accuracy
 
-    scat = ax.scatter(x, y, c=labels, cmap=cmap, norm=norm)
-    cb = plt.colorbar(scat, spacing='proportional', ticks=bounds)
-    cb.set_label("Person id")
-    ax.set_title('Audio 2D mapping')
-    plt.savefig(title)
+    return accuracies
