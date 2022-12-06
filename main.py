@@ -15,6 +15,8 @@ import librosa
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from kneed import KneeLocator
+from sklearn.metrics import silhouette_score
+from sklearn.metrics import accuracy_score
 
 inputdir = sys.argv[1]
 num_threads = 4
@@ -29,16 +31,18 @@ audios, people = funcs.shuffle_equally(audios, people)
 official_labels = [int(elem[2:]) for elem in people]
 official_labels = np.array([elem - min(official_labels) for elem in official_labels])
 
-n_audios = len(audios)
+# Aici iar nu mai folosim ca lucram pe tot setul de date
 
-# Split into 80% train 20% test
-n_train = round(n_audios * 0.8)
+# n_audios = len(audios)
 
-X_train = audios[:n_train]
-Y_train = people[:n_train]
+# # Split into 80% train 20% test
+# n_train = round(n_audios * 0.8)
 
-X_test = audios[n_train:]
-Y_test = people[n_train:]
+# X_train = audios[:n_train]
+# Y_train = people[:n_train]
+
+# X_test = audios[n_train:]
+# Y_test = people[n_train:]
 
 plots.data_distribution(official_labels, 'people_distribution.jpg')
 
@@ -63,7 +67,7 @@ plots.fft_mag_phase(audio_data, audio_fft, freqs)
 n_psds = 6
 psds = funcs.power_spectral_density(audio_data[:n_psds], Fs)
 for idx, psd in enumerate(psds):
-    plots.psd(psd, idx)
+      plots.psd(psd, idx)
 
 # Autocorrelation of one signal
 which = 0
@@ -80,7 +84,7 @@ plots.covariance_matrix(covariance_matrix)
 
 # MFCCs
 min_length = funcs.min_length(audio_data)
-mfcc = [librosa.feature.mfcc(y=elem[:min_length], sr=Fs, n_mfcc=16, hop_length=500) for elem in audio_data]
+mfcc = [librosa.feature.mfcc(y=elem[:min_length], sr=Fs, n_mfcc=8, hop_length=250) for elem in np.abs(audio_fft)]
 
 plots.mfcc(mfcc[10], Fs)
 
@@ -89,38 +93,43 @@ scaler = StandardScaler()
 mfcc_scaled = [scaler.fit_transform(elem) for elem in mfcc]
 mfcc_scaled_flat = np.array([elem.flatten() for elem in mfcc_scaled])
 
-plots.scatter(mfcc_scaled_flat[:, 1000], mfcc_scaled_flat[:, 1001], labels=official_labels, n_labels=40, title='scatter.jpg')
+plots.scatter(mfcc_scaled_flat[:, 0], mfcc_scaled_flat[:, 1], labels=official_labels, n_labels=40, title='scatter.jpg')
 
 kmeans_40 = KMeans(40, init='k-means++', random_state=42)
 kmeans_40.fit(mfcc_scaled_flat)
 pred_labels = kmeans_40.labels_
 
-plots.scatter(kmeans_40.cluster_centers_[:, 1000], kmeans_40.cluster_centers_[:, 1001], labels=range(40), n_labels=40, title='kmeans_centers.jpg')
+plots.scatter(kmeans_40.cluster_centers_[:, 0], kmeans_40.cluster_centers_[:, 1], labels=range(40), n_labels=40, title='kmeans_centers.jpg')
 
 accuracies = funcs.Kmeans_accuracy(official_labels, pred_labels)
 print(accuracies)
 
 # Finding optimum number of classes
 # get within cluster sum of squares for each value of k
-wcss = []
-max_clusters = 40
-for i in range(1, max_clusters):
-    kmeans_pca = KMeans(i, init='k-means++', random_state=42)
-    kmeans_pca.fit(mfcc_scaled_flat)
-    wcss.append(kmeans_pca.inertia_)
-    print(f"KMeans for {i} clusters done")
+# eu zic ca nu mai nevoie de partea asta ca stim ca avem 40 clase
+# wcss = []
+# max_clusters = 40
+# for i in range(1, max_clusters):
+#     kmeans_pca = KMeans(i, init='k-means++', random_state=42)
+#     kmeans_pca.fit(mfcc_scaled_flat[:n_train])
+#     wcss.append(kmeans_pca.inertia_)
+#     print(f"KMeans for {i} clusters done")
 
-# programmatically locate the elbow
-n_clusters = KneeLocator([i for i in range(1, max_clusters)], wcss, curve='convex', direction='decreasing').knee
-print("Optimal number of clusters", n_clusters)
+# # programmatically locate the elbow
+# n_clusters = KneeLocator([i for i in range(1, max_clusters)], wcss, curve='convex', direction='decreasing').knee
+# print("Optimal number of clusters", n_clusters)
 
 # visualize the curve in order to locate the elbow
-plots.kmeans_elbow(max_clusters, wcss, n_clusters)
+#plots.kmeans_elbow(max_clusters, wcss, n_clusters)
 
-# # Garbage collector
-# get_ipython().magic('reset -sf')
-# del audio_fft
-# del audio_data
-# gc.collect()
+     # Garbage collector
+get_ipython().magic('reset -sf')
+del audio_fft
+del audio_data
+del mfcc
+del mfcc_scaled
+del mfcc_scaled_flat
+del freqs
+gc.collect()
 
 print("Done")
